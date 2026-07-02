@@ -39,7 +39,7 @@ export const PROVIDERS: ProviderConfig[] = [
     name: 'Gemini',
     subtitle: 'Google',
     keyPlaceholder: 'AIzaSy...',
-    defaultModel: 'gemini-2.0-flash',
+    defaultModel: 'gemini-1.5-flash',
     color: '#2563eb',
     bgColor: '#dbeafe',
     iconName: 'globe',
