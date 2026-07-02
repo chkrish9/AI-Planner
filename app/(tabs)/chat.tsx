@@ -14,6 +14,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { sendMessage, getApiKey, type StreamChunk } from '../../src/ai/client';
+import { getActiveProvider, getProviderConfig } from '../../src/ai/provider-config';
 import { getRecentMessages, type Message } from '../../src/db/queries';
 
 interface DisplayMessage extends Message {
@@ -33,13 +34,15 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+  const [providerName, setProviderName] = useState('AI Assistant');
   const listRef = useRef<FlatList>(null);
 
   useFocusEffect(
     useCallback(() => {
       async function init() {
-        const key = await getApiKey();
+        const [key, activeId] = await Promise.all([getApiKey(), getActiveProvider()]);
         setHasApiKey(!!key);
+        setProviderName(getProviderConfig(activeId).name);
         if (key) {
           const history = await getRecentMessages(50);
           if (history.length > 0) setMessages([WELCOME, ...history]);
@@ -140,7 +143,7 @@ export default function ChatScreen() {
         </View>
         <View>
           <Text style={styles.headerTitle}>AI Planner</Text>
-          <Text style={styles.headerSub}>Your personal assistant</Text>
+          <Text style={styles.headerSub}>Powered by {providerName}</Text>
         </View>
       </View>
 
