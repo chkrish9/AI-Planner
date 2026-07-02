@@ -142,8 +142,33 @@ interface GeminiPart {
 }
 interface GeminiContent { role: 'user' | 'model'; parts: GeminiPart[] }
 
+// Gemini only accepts string values in enum arrays; remove enum from number/integer fields
+function geminiSanitizeSchema(schema: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...schema };
+  if ((out.type === 'number' || out.type === 'integer') && out.enum) {
+    delete out.enum;
+  }
+  if (out.properties && typeof out.properties === 'object') {
+    const props: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(out.properties as Record<string, unknown>)) {
+      props[k] = geminiSanitizeSchema(v as Record<string, unknown>);
+    }
+    out.properties = props;
+  }
+  if (out.items && typeof out.items === 'object') {
+    out.items = geminiSanitizeSchema(out.items as Record<string, unknown>);
+  }
+  return out;
+}
+
 function toGeminiTools() {
-  return [{ functionDeclarations: AI_TOOLS.map((t) => ({ name: t.name, description: t.description, parameters: t.input_schema })) }];
+  return [{
+    functionDeclarations: AI_TOOLS.map((t) => ({
+      name: t.name,
+      description: t.description,
+      parameters: geminiSanitizeSchema(t.input_schema as unknown as Record<string, unknown>),
+    })),
+  }];
 }
 
 async function callGemini(apiKey: string, contents: GeminiContent[], system: string): Promise<LLMResponse> {
