@@ -140,7 +140,7 @@ interface GeminiPart {
   functionCall?: { name: string; args: Record<string, unknown> };
   functionResponse?: { name: string; response: Record<string, unknown> };
 }
-interface GeminiContent { role: 'user' | 'model'; parts: GeminiPart[] }
+interface GeminiContent { role: 'user' | 'model' | 'function'; parts: GeminiPart[] }
 
 // Gemini only accepts string values in enum arrays; remove enum from number/integer fields
 function geminiSanitizeSchema(schema: Record<string, unknown>): Record<string, unknown> {
@@ -188,7 +188,7 @@ async function callGemini(apiKey: string, contents: GeminiContent[], system: str
     if (part.functionCall) toolCalls.push({ id: part.functionCall.name, name: part.functionCall.name, input: part.functionCall.args });
   }
   const finishReason = data.candidates?.[0]?.finishReason;
-  return { text, toolCalls, done: (finishReason === 'STOP' || finishReason === 'MAX_TOKENS') && toolCalls.length === 0 };
+  return { text, toolCalls, done: (finishReason === 'STOP' || finishReason === 'MAX_TOKENS') || toolCalls.length === 0 };
 }
 
 async function runGeminiLoop(
@@ -214,7 +214,7 @@ async function runGeminiLoop(
       onChunk({ type: 'tool_done', toolName: tc.name, toolResult: result });
       responseParts.push({ functionResponse: { name: tc.name, response: { result: result.data ?? result.error } } });
     }
-    contents.push({ role: 'user', parts: responseParts });
+    contents.push({ role: 'function', parts: responseParts });
   }
   return accumulated;
 }
